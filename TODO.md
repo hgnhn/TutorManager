@@ -25,6 +25,20 @@ The user writes in Vietnamese; answer in Vietnamese.
    upload/download a file (bucket `materials` never exercised on the real project yet) and a link material.
 3. When Long Vân domain leaves "Đang xử lý": Pages custom domain `bananalab.id.vn`, DNS (README §4), Enforce HTTPS.
 
+**Feature asked 2026-11-07 (do after or alongside the booking test): email + announcements + paid tick**
+User decisions: send with **Resend from the own domain** (e.g. `thongbao@bananalab.id.vn`; until the domain leaves
+"Đang xử lý" Resend's test sender only reaches the Resend account's own email); lesson reminder **20:00 the evening
+before + 1 h before**; fee reminder **3 days before month end + on the 1st if still unpaid** (Asia/Ho_Chi_Minh).
+1. Paid tick: tutor's per-lesson row in Fees.jsx `StudentLessons` gets a "Đã thu" checkbox that toggles `paid` both
+   ways (today paid can only be set, never undone).
+2. Announcements: new table (title, body, student_id null = all, created_at) with the same RLS pattern as
+   `materials`; tutor composes, students read in-app (new "Thông báo" page) and get it by email.
+3. Email: Supabase Edge Functions (Deno) + Resend API (`RESEND_API_KEY`, `MAIL_FROM` as function secrets the user sets).
+   Announcement mail: client invokes a function with the user's JWT, the function checks the caller is tutor, reads
+   recipient emails from auth.users with the service role. Reminders: pg_cron + pg_net every 15 min call a reminders
+   function; an `email_log` table (kind, ref, unique) prevents duplicates. Deploy needs `npx supabase login` (user)
+   and `supabase functions deploy`; new migration run in SQL Editor. Never put the service role key in the client.
+
 **Files:** schema/RLS `supabase/migrations/` (init + material_links); `src/pages/` (Calendar.jsx big, Fees.jsx monthly
 groups via `byMonth` in `src/lib/time.js`, Materials.jsx file/link, Login.jsx sign-in only); `src/lib/vietqr.js`.
 
