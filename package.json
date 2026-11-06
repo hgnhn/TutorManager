@@ -7,8 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/lib/*.test.js",
-    "test:db": "node supabase/tests/rls.test.mjs supabase/migrations/20261106000000_init.sql supabase/migrations/20261107000000_material_links.sql"
+    "test": "node --test src/lib/*.test.js supabase/functions/_shared/*.test.js",
+    "test:db": "node supabase/tests/rls.test.mjs supabase/migrations/20261106000000_init.sql supabase/migrations/20261107000000_material_links.sql supabase/migrations/20261108000000_announcements_email.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

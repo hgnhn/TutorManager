@@ -25,19 +25,22 @@ The user writes in Vietnamese; answer in Vietnamese.
    upload/download a file (bucket `materials` never exercised on the real project yet) and a link material.
 3. When Long Vân domain leaves "Đang xử lý": Pages custom domain `bananalab.id.vn`, DNS (README §4), Enforce HTTPS.
 
-**Feature asked 2026-11-07 (do after or alongside the booking test): email + announcements + paid tick**
-User decisions: send with **Resend from the own domain** (e.g. `thongbao@bananalab.id.vn`; until the domain leaves
-"Đang xử lý" Resend's test sender only reaches the Resend account's own email); lesson reminder **20:00 the evening
-before + 1 h before**; fee reminder **3 days before month end + on the 1st if still unpaid** (Asia/Ho_Chi_Minh).
-1. Paid tick: tutor's per-lesson row in Fees.jsx `StudentLessons` gets a "Đã thu" checkbox that toggles `paid` both
-   ways (today paid can only be set, never undone).
-2. Announcements: new table (title, body, student_id null = all, created_at) with the same RLS pattern as
-   `materials`; tutor composes, students read in-app (new "Thông báo" page) and get it by email.
-3. Email: Supabase Edge Functions (Deno) + Resend API (`RESEND_API_KEY`, `MAIL_FROM` as function secrets the user sets).
-   Announcement mail: client invokes a function with the user's JWT, the function checks the caller is tutor, reads
-   recipient emails from auth.users with the service role. Reminders: pg_cron + pg_net every 15 min call a reminders
-   function; an `email_log` table (kind, ref, unique) prevents duplicates. Deploy needs `npx supabase login` (user)
-   and `supabase functions deploy`; new migration run in SQL Editor. Never put the service role key in the client.
+**Email + announcements + paid tick: code done 2026-11-07 (README §5 = the user's setup steps)**
+- Paid tick: Fees.jsx `StudentLessons` per-lesson "Đã thu" checkbox toggles `bookings.paid` both ways.
+- Announcements: migration `20261108000000_announcements_email.sql` (announcements, same RLS as materials; `email_log`
+  key text pk, service role only). `src/pages/Announcements.jsx`: tutor tab "Thông báo" composes/deletes; students get
+  a bell top-right (`src/components/Bell.jsx`: unread badge = created_at > localStorage `ann-seen:<uid>`, per browser;
+  click opens a dropdown of the latest 10 titles, a title opens `#/thong-bao/<id>` detail).
+- Email: `supabase/functions/announce` (client invokes with user JWT; checks tutor via `auth.getUser` + profiles) and
+  `reminders` (header `x-cron-secret` = secret `CRON_SECRET`), both `verify_jwt = false` in config.toml. Shared
+  `_shared/mail.ts` (`sendOnce`: claim keys in email_log, Resend batch, release keys on failure) and pure
+  `_shared/reminders.js` (rules, tested by `npm test`). `supabase/cron.sql` = pg_cron every 15 min (user pastes, with secret).
+- Domain: DNS of bananalab.id.vn is on **Cloudflare** (Zoho Mail MX, user's mailbox hoangvietnhan@bananalab.id.vn), so
+  Resend can be verified now. MAIL_FROM suggested `Hoàng Việt Nhân <hoangvietnhan@bananalab.id.vn>`. README §4 (DNS at
+  Long Vân) is stale: records now go into Cloudflare (DNS only for GitHub Pages).
+- Not yet done by the user / not verified live: migration run, Resend account + domain, secrets, deploy
+  (`npx supabase functions deploy --remote=rdnrojtblfmrjhbqlzrk --use-api`), cron.sql. Edge functions were type-checked
+  with `npx deno@2 check` but never run against the real project.
 
 **Files:** schema/RLS `supabase/migrations/` (init + material_links); `src/pages/` (Calendar.jsx big, Fees.jsx monthly
 groups via `byMonth` in `src/lib/time.js`, Materials.jsx file/link, Login.jsx sign-in only); `src/lib/vietqr.js`.
@@ -55,6 +58,6 @@ not now; if revived, SePay supports BIDV, needs an Edge Function webhook and a u
 - `npm run test:db` = PGlite with stubbed auth/storage (35 checks); not identical to real Supabase.
 - Unauthenticated GitHub API = 60 req/h (a polling loop burned it); read the Actions page in the browser pane instead.
   A deploy takes ~4 min. `gh` CLI is not installed.
-- No UI to undo "paid"; no UI to rename a student (SQL only).
+- No UI to rename a student (SQL only). Announcement "read" state is per browser (localStorage).
 - Known gaps: tutor cannot cancel an approved lesson in the UI; students can send duplicate pending requests;
   phone users book by tapping (no drag).

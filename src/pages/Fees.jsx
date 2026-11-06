@@ -141,6 +141,13 @@ function StudentLessons({ studentId, onChanged }) {
     onChanged();
   }
 
+  async function setPaid(b, paid) {
+    const { error: e } = await supabase.from('bookings').update({ paid }).eq('id', b.id);
+    if (e) return toast(errMsg(e), 'error');
+    reload();
+    onChanged();
+  }
+
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!data) return <p className="muted">Đang tải…</p>;
   if (!data.length) return <p className="muted">Học viên này chưa có buổi học nào đã diễn ra.</p>;
@@ -168,9 +175,12 @@ function StudentLessons({ studentId, onChanged }) {
                     <input id={`bl-${b.id}`} type="checkbox" checked={b.billable} onChange={(e) => setBillable(b, e.target.checked)} />
                     <label htmlFor={`bl-${b.id}`}>Tính tiền</label>
                   </span>
-                  <span className={b.billable && b.paid ? 'paid' : 'muted'}>
-                    {!b.billable ? 'Không tính tiền' : b.paid ? 'Đã thu' : 'Chưa thu'}
-                  </span>
+                  {b.billable ? (
+                    <span className="check">
+                      <input id={`pd-${b.id}`} type="checkbox" checked={b.paid} onChange={(e) => setPaid(b, e.target.checked)} />
+                      <label htmlFor={`pd-${b.id}`}>Đã thu</label>
+                    </span>
+                  ) : <span className="muted">Không tính tiền</span>}
                 </li>
               ))}
             </ul>

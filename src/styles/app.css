@@ -29,6 +29,25 @@
 .tabs a:hover { color: var(--ink); }
 .tabs a[aria-current="page"] { color: var(--violet); border-bottom-color: var(--violet); font-weight: 500; }
 .user { display: flex; align-items: center; gap: var(--s3); font-size: var(--t-sm); color: var(--ink-soft); white-space: nowrap; }
+.bell-wrap { position: relative; }
+.bell { position: relative; display: inline-flex; padding: 6px; border: 0; background: none; cursor: pointer; border-radius: 999px; color: var(--ink-soft); }
+.bell:hover, .bell[aria-expanded="true"] { color: var(--violet); background: var(--violet-wash); }
+.bell-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(320px, calc(100vw - 32px));
+  padding: var(--s3); white-space: normal; background: var(--paper-raised);
+  border: 1px solid var(--rule-faint); border-radius: var(--r-sheet); box-shadow: 0 8px 24px rgb(0 0 0 / .12);
+}
+.bell-panel__title { font-size: var(--t-lg); margin-bottom: var(--s2); }
+.bell-panel ul { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+.bell-panel li a { display: block; padding: var(--s2); border-radius: var(--r-control); color: var(--ink); text-decoration: none; }
+.bell-panel li a:hover { background: var(--violet-wash); }
+.bell-panel__date { display: block; font-size: var(--t-xs); }
+.bell-panel__dot { display: inline-block; width: 8px; height: 8px; margin-right: var(--s2); border-radius: 50%; background: var(--violet); }
+.bell-panel__all { margin: var(--s2) 0 0; padding-top: var(--s2); border-top: 1px solid var(--rule-faint); text-align: right; }
+.bell__count {
+  position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--violet); color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; text-align: center;
+}
 
 /* ---------- page ---------- */
 

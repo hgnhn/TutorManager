@@ -6,6 +6,8 @@ import Calendar from './pages/Calendar.jsx';
 import Sessions from './pages/Sessions.jsx';
 import Fees from './pages/Fees.jsx';
 import Materials from './pages/Materials.jsx';
+import Bell from './components/Bell.jsx';
+import Announcements from './pages/Announcements.jsx';
 import Settings from './pages/Settings.jsx';
 import Login from './pages/Login.jsx';
 
@@ -14,6 +16,7 @@ const TABS = [
   { path: '/buoi-hoc', label: 'Buổi học' },
   { path: '/hoc-phi', label: 'Học phí' },
   { path: '/tai-lieu', label: 'Tài liệu' },
+  { path: '/thong-bao', label: 'Thông báo' },
 ];
 
 const currentPath = () => window.location.hash.replace(/^#/, '') || '/';
@@ -67,7 +70,7 @@ export default function App() {
   const ctx = useMemo(() => ({ session, profile, isTutor, toast, bump }), [session, profile, isTutor, toast, bump]);
 
   const checking = session === undefined || (session && !profile && !profileErr);
-  const tabs = isTutor ? [...TABS, { path: '/cai-dat', label: 'Cài đặt' }] : TABS;
+  const tabs = isTutor ? [...TABS, { path: '/cai-dat', label: 'Cài đặt' }] : TABS.filter((t) => t.path !== '/thong-bao');
   const name = profile?.full_name || session?.user.email;
 
   let page;
@@ -75,10 +78,11 @@ export default function App() {
   else if (profileErr) page = <main className="page"><h1>Không tải được hồ sơ</h1><p className="error" role="alert">{profileErr}. Tải lại trang để thử lại.</p></main>;
   else if (path === '/dang-nhap') page = session ? <Redirect /> : <Login />;
   else if (path === '/') page = <Calendar />;
-  else if (!session && [...TABS, { path: '/cai-dat' }].some((t) => t.path === path)) page = <NeedLogin />;
+  else if (!session && [...TABS, { path: '/cai-dat' }].some((t) => t.path === path || (t.path === '/thong-bao' && path.startsWith('/thong-bao/')))) page = <NeedLogin />;
   else if (path === '/buoi-hoc') page = <Sessions />;
   else if (path === '/hoc-phi') page = <Fees />;
   else if (path === '/tai-lieu') page = <Materials />;
+  else if (path === '/thong-bao' || path.startsWith('/thong-bao/')) page = <Announcements id={path.split('/')[2] || null} />;
   else if (path === '/cai-dat') page = isTutor ? <Settings /> : <main className="page"><h1>Cài đặt</h1><p>Trang này chỉ dành cho gia sư.</p></main>;
   else page = <main className="page"><h1>Không tìm thấy trang</h1><p><a href="#/">Về trang Lịch</a></p></main>;
 
@@ -98,6 +102,7 @@ export default function App() {
           <div className="user">
             {session ? (
               <>
+                {profile && !isTutor && <Bell userId={userId} path={path} version={version} />}
                 <span>{name}</span>
                 <button type="button" className="btn btn--secondary" onClick={() => supabase.auth.signOut()}>Đăng xuất</button>
               </>

@@ -111,4 +111,16 @@ await fails(as(T, `insert into materials (title, link_url) values ('Xấu', 'jav
 await fails(as(T, `insert into materials (title, file_path, file_name, link_url) values ('Cả hai', 's/x.pdf', 'x.pdf', 'https://a.vn/x')`), /materials_file_or_link/); ok("material cannot be both file and link");
 await fails(as(T, `insert into materials (title) values ('Không gì')`), /materials_file_or_link/); ok("material needs a file or a link");
 
+// announcements + email_log
+await as(T, `insert into announcements (title, student_id) values ('Chung', null),('Cho An','${A}'),('Cho Bình','${B}')`);
+assert.deepEqual((await as(A, `select title from announcements order by id`)).map(r => r.title), ["Chung", "Cho An"]); ok("student sees shared and own announcements only");
+assert.equal((await as(null, `select id from announcements`)).length, 0); ok("anon sees no announcements");
+await fails(as(A, `insert into announcements (title) values ('Giả')`), /row-level security/); ok("student cannot post an announcement");
+assert.equal((await as(A, `delete from announcements returning id`)).length, 0); ok("student cannot delete announcements");
+await fails(as(T, `insert into announcements (title) values ('  ')`), /check constraint/); ok("empty announcement title rejected");
+await fails(as(T, `select * from email_log`), /permission denied/); ok("tutor cannot read email_log");
+await fails(as(A, `select * from email_log`), /permission denied/); ok("student cannot read email_log");
+await fails(as(T, `insert into email_log (key) values ('x')`), /permission denied/); ok("tutor cannot write email_log");
+await fails(as(A, `insert into email_log (key) values ('x')`), /permission denied/); ok("student cannot write email_log");
+
 console.log(`\nall ${n} checks passed`);
