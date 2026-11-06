@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   startOfWeek, addDays, rowIndex, snapRow, rowToDate, dragRange, firstFutureRow, nextHalfHour,
   overlaps, contains, dayRows, subtractRanges, freeIntervals, mergeRange, halfHours,
-  fmtDay, fmtTime, fmtRange, fmtMoney, fmtBytes, ROWS,
+  byMonth, fmtDay, fmtDate, fmtTime, fmtRange, fmtMoney, fmtBytes, ROWS,
 } from './time.js';
 
 const at = (d, h, m = 0) => new Date(2026, 10, d, h, m); // November 2026: the 9th is a Monday
@@ -83,6 +83,23 @@ test('mergeRange joins overlapping and touching blocks, chains included', () => 
 
 test('halfHours lists steps', () => {
   assert.deepEqual(halfHours(at(9, 8), at(9, 9, 30)), [at(9, 8), at(9, 8, 30), at(9, 9)]);
+});
+
+test('byMonth groups by calendar month, oldest first, due on the last day', () => {
+  const b = (start, price) => ({ start, price });
+  const now = at(15, 10);
+  const g = byMonth([b(at(20, 9), 300), b(new Date(2026, 9, 31, 23, 30), 100), b(at(2, 9), 100), b(new Date(2026, 1, 10, 9), 50)], now);
+  assert.deepEqual(g.map((x) => x.key), ['2026-02', '2026-10', '2026-11']);
+  assert.equal(g[2].label, 'Tháng 11/2026');
+  assert.deepEqual(g[2].items.map((x) => x.price), [100, 300]); // sorted by start
+  assert.deepEqual(g.map((x) => x.total), [50, 100, 400]);
+  assert.deepEqual(g.map((x) => x.overdue), [true, true, false]);
+  assert.deepEqual(g[2].start, at(1, 0));
+  assert.deepEqual(g[2].next, new Date(2026, 11, 1));
+  assert.equal(fmtDate(g[2].due), '30/11/2026');
+  assert.equal(fmtDate(g[0].due), '28/2/2026');
+  assert.equal(fmtDate(byMonth([b(new Date(2028, 1, 3), 1)], now)[0].due), '29/2/2028');
+  assert.equal(byMonth([b(at(5, 9), 1)], new Date(2026, 11, 1))[0].overdue, true); // overdue from the 1st at 00:00
 });
 
 test('formatting', () => {

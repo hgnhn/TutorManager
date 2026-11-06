@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase, errMsg, ok } from '../lib/supabase.js';
 import { useApp } from '../lib/app.js';
 import { useData } from '../lib/hooks.js';
-import { withDates, fmtDay, fmtRange, fmtMoney } from '../lib/time.js';
+import { withDates, byMonth, fmtDay, fmtDate, fmtRange, fmtMoney } from '../lib/time.js';
 import { transferInfo, vietqrUrl } from '../lib/vietqr.js';
 import Dialog from '../components/Dialog.jsx';
 
@@ -15,8 +15,17 @@ function TutorFees() {
   const { toast } = useApp();
   const [open, setOpen] = useState(null); // student id
   const [confirm, setConfirm] = useState(null); // fee_summary row
-  const { data, error, reload } = useData(async () =>
-    ok(await supabase.from('fee_summary').select('*').order('full_name')), []);
+  const { data, error, reload } = useData(async () => {
+    const now = new Date();
+    const [summary, late] = await Promise.all([
+      supabase.from('fee_summary').select('*').order('full_name'),
+      supabase.from('bookings').select('student_id, price, start_at').eq('status', 'approved').eq('billable', true)
+        .eq('paid', false).lt('start_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString()),
+    ]);
+    const overdue = {};
+    for (const b of ok(late)) overdue[b.student_id] = (overdue[b.student_id] || 0) + b.price;
+    return ok(summary).map((r) => ({ ...r, overdue: overdue[r.student_id] || 0 }));
+  }, []);
 
   const rows = data ?? [];
   const total = rows.reduce((sum, r) => sum + Number(r.amount_owed), 0);
@@ -35,7 +44,7 @@ function TutorFees() {
     <main className="page">
       <div className="page__head">
         <h1>Học phí</h1>
-        <p>Số tiền chưa thu của từng học viên, tính từ các buổi đã học.</p>
+        <p>Số tiền chưa thu của từng học viên, cộng dồn theo tháng, hạn cuối mỗi tháng.</p>
       </div>
       {error && <p className="error" role="alert">{error}. Tải lại trang để thử lại.</p>}
       {data && !rows.length && <p>Chưa có học viên nào. Học viên sẽ hiện ở đây sau khi họ tạo tài khoản.</p>}
@@ -50,6 +59,7 @@ function TutorFees() {
                   <th className="num">Đã học</th>
                   <th className="num">Chưa thu (buổi)</th>
                   <th className="num">Số tiền chưa thu</th>
+                  <th className="num">Quá hạn</th>
                   <th className="num">Đã thu</th>
                   <th><span className="sr-only">Thao tác</span></th>
                 </tr>
@@ -90,6 +100,7 @@ function FeeRow({ r, open, onToggle, onPayAll, onChanged }) {
         <td className="num">{r.sessions_taught}</td>
         <td className="num">{r.sessions_owed}</td>
         <td className="num">{fmtMoney(r.amount_owed)}</td>
+        {r.overdue > 0 ? <td className="num overdue">{fmtMoney(r.overdue)}</td> : <td className="num muted">—</td>}
         <td className="num">{fmtMoney(r.amount_paid)}</td>
         <td className="num">
           <button type="button" className="btn btn--secondary" disabled={!r.sessions_owed} onClick={onPayAll}>Đã thu đủ</button>
@@ -97,7 +108,7 @@ function FeeRow({ r, open, onToggle, onPayAll, onChanged }) {
       </tr>
       {open && (
         <tr>
-          <td colSpan="6" className="detail"><StudentLessons studentId={r.student_id} onChanged={onChanged} /></td>
+          <td colSpan="7" className="detail"><StudentLessons studentId={r.student_id} onChanged={onChanged} /></td>
         </tr>
       )}
     </>
@@ -106,9 +117,22 @@ function FeeRow({ r, open, onToggle, onPayAll, onChanged }) {
 
 function StudentLessons({ studentId, onChanged }) {
   const { toast } = useApp();
+  const [confirm, setConfirm] = useState(null); // { g: month group, n, total }
   const { data, error, reload } = useData(async () =>
     ok(await supabase.from('bookings').select('*').eq('student_id', studentId).eq('status', 'approved')
       .lte('start_at', new Date().toISOString()).order('start_at', { ascending: false })).map(withDates), [studentId]);
+
+  async function payMonth(g) {
+    const { error: e } = await supabase.from('bookings').update({ paid: true })
+      .eq('student_id', studentId).eq('status', 'approved').eq('billable', true).eq('paid', false)
+      .gte('start_at', g.start.toISOString()).lt('start_at', g.next.toISOString())
+      .lte('start_at', new Date().toISOString());
+    setConfirm(null);
+    if (e) return toast(errMsg(e), 'error');
+    toast(`Đã ghi nhận thu học phí ${g.label}.`);
+    reload();
+    onChanged();
+  }
 
   async function setBillable(b, billable) {
     const { error: e } = await supabase.from('bookings').update({ billable }).eq('id', b.id);
@@ -121,21 +145,48 @@ function StudentLessons({ studentId, onChanged }) {
   if (!data) return <p className="muted">Đang tải…</p>;
   if (!data.length) return <p className="muted">Học viên này chưa có buổi học nào đã diễn ra.</p>;
   return (
-    <ul className="rows">
-      {data.map((b) => (
-        <li key={b.id} className="row row--compact">
-          <span>{fmtDay(b.start)}, {fmtRange(b.start, b.end)}</span>
-          <span>{fmtMoney(b.price)}</span>
-          <span className="check">
-            <input id={`bl-${b.id}`} type="checkbox" checked={b.billable} onChange={(e) => setBillable(b, e.target.checked)} />
-            <label htmlFor={`bl-${b.id}`}>Tính tiền</label>
-          </span>
-          <span className={b.billable && b.paid ? 'paid' : 'muted'}>
-            {!b.billable ? 'Không tính tiền' : b.paid ? 'Đã thu' : 'Chưa thu'}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      {byMonth(data, new Date()).reverse().map((g) => {
+        const unpaid = g.items.filter((b) => b.billable && !b.paid);
+        const total = unpaid.reduce((sum, b) => sum + b.price, 0);
+        return (
+          <div key={g.key}>
+            <h3>{g.label}</h3>
+            {unpaid.length > 0 && (
+              <p>
+                {fmtMoney(total)}{' '}
+                {g.overdue ? <span className="overdue">Quá hạn</span> : <span className="muted">Hạn {fmtDate(g.due)}</span>}{' '}
+                <button type="button" className="btn btn--secondary" onClick={() => setConfirm({ g, n: unpaid.length, total })}>Đã thu tháng này</button>
+              </p>
+            )}
+            <ul className="rows">
+              {g.items.map((b) => (
+                <li key={b.id} className="row row--compact">
+                  <span>{fmtDay(b.start)}, {fmtRange(b.start, b.end)}</span>
+                  <span>{fmtMoney(b.price)}</span>
+                  <span className="check">
+                    <input id={`bl-${b.id}`} type="checkbox" checked={b.billable} onChange={(e) => setBillable(b, e.target.checked)} />
+                    <label htmlFor={`bl-${b.id}`}>Tính tiền</label>
+                  </span>
+                  <span className={b.billable && b.paid ? 'paid' : 'muted'}>
+                    {!b.billable ? 'Không tính tiền' : b.paid ? 'Đã thu' : 'Chưa thu'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+      {confirm && (
+        <Dialog title="Đã thu tháng này?" onClose={() => setConfirm(null)}>
+          <p>{confirm.g.label}: {confirm.n} buổi, {fmtMoney(confirm.total)}.</p>
+          <div className="actions">
+            <button type="button" className="btn btn--primary" onClick={() => payMonth(confirm.g)}>Đã thu</button>
+            <button type="button" className="btn btn--secondary" data-autofocus onClick={() => setConfirm(null)}>Đóng</button>
+          </div>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -151,6 +202,8 @@ function StudentFees() {
   }, []);
 
   const owed = data ? data.unpaid.reduce((sum, b) => sum + b.price, 0) : 0;
+  const months = data ? byMonth(data.unpaid, new Date()) : [];
+  const late = months.filter((g) => g.overdue).reduce((sum, g) => sum + g.total, 0);
   const s = data?.settings;
   const info = transferInfo(profile.full_name);
   const bankSet = !!(s && s.bank_id && s.account_no);
@@ -167,18 +220,26 @@ function StudentFees() {
           <section className="section">
             <p className="owed">{fmtMoney(owed)}</p>
             {owed === 0 && <p>Bạn đã đóng đủ học phí.</p>}
+            {owed > 0 && <p className="muted">Học phí cộng dồn theo tháng, đóng trước ngày cuối mỗi tháng.</p>}
+            {late > 0 && <p className="overdue">Quá hạn: {fmtMoney(late)}</p>}
           </section>
           {owed > 0 && (
             <section className="section">
               <h2>Các buổi chưa đóng</h2>
-              <ul className="rows">
-                {data.unpaid.map((b) => (
-                  <li key={b.id} className="row row--compact">
-                    <span>{fmtDay(b.start)}, {fmtRange(b.start, b.end)}</span>
-                    <span>{fmtMoney(b.price)}</span>
-                  </li>
-                ))}
-              </ul>
+              {months.map((g) => (
+                <div key={g.key}>
+                  <h3>{g.label} · {fmtMoney(g.total)}</h3>
+                  {g.overdue ? <span className="overdue">Quá hạn</span> : <span className="muted">Hạn {fmtDate(g.due)}</span>}
+                  <ul className="rows">
+                    {g.items.map((b) => (
+                      <li key={b.id} className="row row--compact">
+                        <span>{fmtDay(b.start)}, {fmtRange(b.start, b.end)}</span>
+                        <span>{fmtMoney(b.price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </section>
           )}
           {owed > 0 && (

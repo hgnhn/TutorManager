@@ -9,6 +9,7 @@
 .hint { font-size: var(--t-sm); color: var(--ink-faint); }
 .error { color: var(--danger); font-size: var(--t-sm); margin: 0 0 var(--s3); }
 .paid { color: var(--ok); }
+.overdue { color: var(--danger); }
 
 /* ---------- header ---------- */
 

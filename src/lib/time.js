@@ -98,6 +98,23 @@ export function halfHours(from, to) {
   return out;
 }
 
+/** Bookings (with .start, .price) grouped by calendar month, oldest first; due = last day, overdue once the month is over. */
+export function byMonth(bookings, now) {
+  const groups = new Map();
+  for (const b of [...bookings].sort((x, y) => x.start - y.start)) {
+    const y = b.start.getFullYear(), m = b.start.getMonth();
+    const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+    if (!groups.has(key)) {
+      const next = new Date(y, m + 1, 1);
+      groups.set(key, { key, label: `Tháng ${m + 1}/${y}`, start: new Date(y, m, 1), next, due: new Date(y, m + 1, 0), overdue: now >= next, total: 0, items: [] });
+    }
+    const g = groups.get(key);
+    g.total += b.price;
+    g.items.push(b);
+  }
+  return [...groups.values()];
+}
+
 // ---------- formatting ----------
 
 const WEEKDAYS = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
