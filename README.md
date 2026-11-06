@@ -1,4 +1,4 @@
-# bananalab — lịch học gia sư
+# TutorManager — lịch học gia sư
 
 Web quản lý dạy kèm: gia sư đăng lịch rảnh, học viên chọn giờ và gửi yêu cầu, gia sư duyệt và gửi link Google Meet,
 hệ thống tự tính học phí (mặc định 100.000 đ/buổi) kèm mã VietQR, và có mục tài liệu/bài tập để học viên tải về.
@@ -76,7 +76,8 @@ DNS có thể mất từ vài phút đến vài giờ.
 - **Link Meet**: học viên chỉ thấy nút "Vào lớp" từ 15 phút trước giờ học đến hết buổi (máy chủ chặn, không chỉ ẩn).
 - **Học phí**: tính các buổi đã duyệt, đã bắt đầu, có tính tiền và chưa thu. Học viên thấy mã VietQR đúng số tiền
   với nội dung `HOCPHI TEN HOC VIEN`. Gia sư bấm "Đã thu đủ" sau khi nhận tiền.
-- **Tài liệu**: gia sư gửi file (tối đa 50 MB) cho tất cả hoặc một học viên; học viên chỉ tải được file của mình.
+- **Tài liệu**: gia sư gửi file (tối đa 50 MB) hoặc link Google Drive/YouTube (cho file lớn hơn 50 MB) cho tất cả hoặc một học viên;
+  học viên chỉ tải/mở được tài liệu của mình.
 - **Thông báo**: hiện ngay trong web (trạng thái buổi học, số yêu cầu chờ duyệt). Chưa gửi email/Zalo.
 
 ## Kiểm tra

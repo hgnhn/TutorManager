@@ -86,7 +86,7 @@ export default function App() {
     <AppCtx.Provider value={ctx}>
       <header className="header">
         <div className="header__in">
-          <a className="wordmark" href="#/">bananalab</a>
+          <a className="wordmark" href="#/">TutorManager</a>
           <nav className="tabs" aria-label="Chính">
             {tabs.map((t) => (
               <a key={t.path} href={`#${t.path}`} aria-current={path === t.path ? 'page' : undefined}>

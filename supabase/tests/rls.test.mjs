@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
-const migration = readFileSync(process.argv[2], "utf8");
+const migration = process.argv.slice(2).map((f) => readFileSync(f, "utf8")).join("\n");
 const db = new PGlite();
 
 await db.exec(`
@@ -105,5 +105,10 @@ assert.deepEqual((await as(A, `select title from materials order by id`)).map(r 
 assert.deepEqual((await as(A, `select name from storage.objects order by name`)).map(r => r.name), ["s/a.pdf", "s/all.pdf"]); ok("student downloads only allowed files");
 await fails(as(A, `insert into storage.objects (bucket_id, name) values ('materials','x')`), /row-level security/); ok("student cannot upload");
 assert.equal((await as(A, `delete from materials returning id`)).length, 0); ok("student cannot delete materials");
+await as(T, `insert into materials (title, link_url, student_id) values ('Link An', 'https://drive.google.com/x', '${A}')`);
+assert.ok((await as(A, `select title from materials`)).some(r => r.title === "Link An")); ok("student sees a link material");
+await fails(as(T, `insert into materials (title, link_url) values ('Xấu', 'javascript:alert(1)')`), /materials_file_or_link/); ok("non-https link rejected");
+await fails(as(T, `insert into materials (title, file_path, file_name, link_url) values ('Cả hai', 's/x.pdf', 'x.pdf', 'https://a.vn/x')`), /materials_file_or_link/); ok("material cannot be both file and link");
+await fails(as(T, `insert into materials (title) values ('Không gì')`), /materials_file_or_link/); ok("material needs a file or a link");
 
 console.log(`\nall ${n} checks passed`);
