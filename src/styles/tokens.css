@@ -1,0 +1,213 @@
+/* bananalab design tokens: a page of a Vietnamese ruled notebook (vở ô li).
+   Paper + blue rules + red margin line, purple school ink, banana highlighter.
+   The calendar is the one bold element; everything else stays quiet. */
+
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Patrick+Hand&display=swap&subset=vietnamese");
+
+:root {
+  /* paper */
+  --paper: #f6f8fc;
+  --paper-raised: #ffffff;
+  --rule: #cbd8ec;          /* notebook ruling, hour lines */
+  --rule-faint: #e3eaf5;    /* half-hour lines, dividers */
+  --margin: #e59aa2;        /* red margin line, used once per view */
+
+  /* ink */
+  --ink: #1e2242;           /* body text, deep navy (not black) */
+  --ink-soft: #565b7d;      /* secondary text */
+  --ink-faint: #8a8fae;     /* hints, disabled */
+  --violet: #4a2db0;        /* mực tím: primary actions, approved lessons */
+  --violet-hover: #3b2190;
+  --violet-wash: #ece8fb;   /* pending lessons, selected rows */
+
+  /* highlighter */
+  --banana: #ffe04a;
+  --banana-deep: #c9a400;   /* text/borders on banana */
+
+  /* status */
+  --ok: #1f7a4d;
+  --danger: #b4232f;
+  --danger-wash: #fbe9eb;
+
+  /* type */
+  --font-ui: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-hand: "Patrick Hand", "Be Vietnam Pro", cursive;
+  /* modular scale 1.25 from 15px */
+  --t-xs: 0.8rem;    /* 12px meta */
+  --t-sm: 0.875rem;  /* 14px */
+  --t-md: 0.9375rem; /* 15px body */
+  --t-lg: 1.171875rem;
+  --t-xl: 1.46484375rem;
+  --t-2xl: 1.8310546875rem;
+  --t-3xl: 2.2888rem;
+
+  /* space (4px base) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 72px;
+
+  /* radius by hierarchy: controls small, sheets larger, highlighter strokes pill-ish */
+  --r-control: 6px;
+  --r-sheet: 14px;
+  --r-mark: 10px 4px 10px 4px; /* uneven like a highlighter stroke */
+
+  /* calendar geometry */
+  --cal-row: 22px;          /* one half-hour */
+  --cal-gutter: 56px;       /* hour labels, left of the margin line */
+
+  --focus: 0 0 0 3px #ffffff, 0 0 0 5px var(--violet);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--t-md)/1.55 var(--font-ui);
+  font-feature-settings: "tnum" 1; /* times and money line up */
+}
+
+h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: -0.01em; }
+h1 { font-size: var(--t-2xl); font-weight: 700; }
+h2 { font-size: var(--t-xl); font-weight: 700; }
+h3 { font-size: var(--t-lg); font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+
+a { color: var(--violet); text-underline-offset: 3px; }
+
+:focus-visible { outline: none; box-shadow: var(--focus); border-radius: var(--r-control); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- the notebook calendar ---------- */
+
+.cal {
+  --days: 7;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sheet);
+  overflow: hidden;
+}
+
+.cal__head,
+.cal__body {
+  display: grid;
+  grid-template-columns: var(--cal-gutter) repeat(var(--days), minmax(0, 1fr));
+}
+
+.cal__head {
+  background: var(--paper-raised);
+  border-bottom: 2px solid var(--rule);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.cal__dayname {
+  padding: var(--s3) var(--s2) var(--s2);
+  border-left: 1px solid var(--rule-faint);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+.cal__dayname strong { display: block; font-size: var(--t-lg); color: var(--ink); font-weight: 600; }
+.cal__dayname[aria-current="date"] strong { color: var(--violet); }
+
+/* top/bottom room so the 07:00 label (shifted up half a line) is not clipped */
+.cal__body { position: relative; padding: 10px 0 6px; }
+
+/* the red margin line between hour labels and the page */
+.cal__gutter { border-right: 2px solid var(--margin); }
+
+.cal__hour {
+  height: calc(var(--cal-row) * 2);
+  padding-right: var(--s2);
+  text-align: right;
+  font-size: var(--t-xs);
+  color: var(--ink-faint);
+  transform: translateY(-0.6em);
+}
+
+.cal__col {
+  position: relative;
+  border-left: 1px solid var(--rule-faint);
+  /* ruled from the top of the column: strong line on the hour, faint on the half hour */
+  background:
+    repeating-linear-gradient(to bottom, var(--rule) 0 1px, transparent 1px calc(var(--cal-row) * 2)),
+    repeating-linear-gradient(to bottom, var(--rule-faint) 0 1px, transparent 1px var(--cal-row));
+  touch-action: none; /* drag-to-select */
+  user-select: none;
+}
+.cal__col--past { background-color: color-mix(in srgb, var(--rule-faint) 45%, transparent); cursor: not-allowed; }
+
+/* a mark sits on the page: position with --top and --len in half-hour rows */
+.mark {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: calc(var(--top) * var(--cal-row) + 1px);
+  height: calc(var(--len) * var(--cal-row) - 2px);
+  border-radius: var(--r-mark);
+  padding: 2px var(--s2);
+  font: 400 1.05rem/1.15 var(--font-hand);
+  overflow: hidden;
+}
+
+/* tutor's free time: banana highlighter */
+.mark--free {
+  background: color-mix(in srgb, var(--banana) 78%, transparent);
+  mix-blend-mode: multiply;
+  color: #5c4a00;
+}
+/* student's request waiting for approval: violet outline in pencil */
+.mark--pending {
+  background: var(--violet-wash);
+  border: 1.5px dashed var(--violet);
+  color: var(--violet);
+  z-index: 1;
+}
+/* approved lesson: written in purple ink */
+.mark--approved {
+  background: var(--violet);
+  color: #fff;
+  z-index: 1;
+}
+/* slot taken by someone else */
+.mark--taken {
+  background: repeating-linear-gradient(135deg, var(--rule-faint) 0 4px, transparent 4px 8px);
+  color: var(--ink-faint);
+  z-index: 1;
+}
+/* rejected or cancelled: struck through, like crossing out ink */
+.mark--struck {
+  background: transparent;
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  border: 1px solid var(--rule);
+  z-index: 1;
+}
+/* live drag selection */
+.mark--draft {
+  background: color-mix(in srgb, var(--violet) 18%, transparent);
+  border: 2px solid var(--violet);
+  color: var(--violet);
+  z-index: 2;
+}
+
+.cal__now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--margin);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Mobile: one day at a time; the day switcher sits above the sheet. */
+@media (max-width: 720px) {
+  .cal { --days: 1; --cal-gutter: 48px; }
+}
