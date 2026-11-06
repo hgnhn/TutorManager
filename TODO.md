@@ -1,36 +1,46 @@
 # TODO
 
-## Next session (handoff 2026-11-06)
+## Next session (handoff 2026-11-07)
 
-**Goal:** get bananalab live: GitHub Pages + real Supabase + domain bananalab.id.vn, then test a full booking with real accounts.
+**Goal:** test a full booking on the real Supabase with a student account, then the domain bananalab.id.vn.
+The user writes in Vietnamese; answer in Vietnamese.
 
-**State:** code complete and pushed to https://github.com/hgnhn/TutorManager (main at a74bc01 + this file).
-Clone it into a real folder first (the first session ran in a temporary app folder that is deleted with it).
+**State:** live at https://hgnhn.github.io/TutorManager/ (Pages via Actions, repo Variables set), Supabase project
+`rdnrojtblfmrjhbqlzrk` (URL + `sb_publishable_…` key in git-ignored `.env.local`). Local clone: `C:\Users\PC\New folder`,
+`.claude/launch.json` runs `npm run dev` on 5173. Commits this session: d13895c (name TutorManager, link materials),
+0a8a649 (tuition per month), then accounts-only login (this commit).
 
-**Done by the user:** Supabase project created ("hgnhn's Project"), "Confirm email" turned off.
-**Not confirmed yet:** migration SQL run in SQL Editor; Site URL set; GitHub Pages source = GitHub Actions;
-repo Variables `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (use the `sb_publishable_…` key, never `sb_secret_…`).
+**Real DB:** init migration applied; tutor = lesterdania3@gmail.com (Hoàng Việt Nhân), Cài đặt filled (BIDV,
+100.000 đ). Account holder name had a typo "HOANG V IET NHAN" and default Meet link was empty: ask if fixed.
+
+**Not confirmed yet (ask the user):**
+- `supabase/migrations/20261107000000_material_links.sql` run in SQL Editor (link materials fail until it is).
+- "Allow new users to sign up" turned off in Supabase (check: `GET /auth/v1/settings` with the apikey → `disable_signup: true`).
+- Site URL in Authentication > URL Configuration.
 
 **Next steps**
-1. Get Project URL + publishable key from the user, put them in `.env.local`, `npm run dev`, user signs up,
-   run the "make tutor" SQL from README section 2 with the user's email.
-2. Tutor sets Cài đặt (price, bank BIN, account, name, default Meet link). Student test account books, tutor approves,
-   check Meet link appears 15 min before, fees + VietQR, upload/download a material (bucket `materials`).
-3. Check the first Actions deploy (it fails until Pages is enabled; re-run after setting Variables).
-   Site works at https://hgnhn.github.io/TutorManager/ (vite `base: './'`, hash routing).
-4. When Long Vân domain leaves "Đang xử lý": Pages custom domain `bananalab.id.vn`, DNS A records ×4 + CNAME www (README §4), Enforce HTTPS.
+1. User creates a student in Supabase (Authentication > Users > Add user, Auto Confirm) + name SQL (README §2
+   "Cấp tài khoản cho học viên"). Tutor paints free time ~30 min ahead; student books; tutor approves.
+2. Check: Meet link appears 15 min before, Học phí per month (Hạn / Quá hạn, "Đã thu tháng này"), VietQR amount,
+   upload/download a file (bucket `materials` never exercised on the real project yet) and a link material.
+3. When Long Vân domain leaves "Đang xử lý": Pages custom domain `bananalab.id.vn`, DNS (README §4), Enforce HTTPS.
 
-**Files:** schema/RLS `supabase/migrations/20261106000000_init.sql`; design tokens + notebook calendar CSS
-`src/styles/tokens.css`; pages in `src/pages/` (Calendar.jsx is the big one); `src/lib/time.js`, `vietqr.js`.
+**Files:** schema/RLS `supabase/migrations/` (init + material_links); `src/pages/` (Calendar.jsx big, Fees.jsx monthly
+groups via `byMonth` in `src/lib/time.js`, Materials.jsx file/link, Login.jsx sign-in only); `src/lib/vietqr.js`.
 
-**Decided:** Supabase (auth, RLS, storage) + static Vite/React on Pages; email+password login; in-app notifications only
-(no email/Zalo); owed fees = approved, billable, unpaid, already started; Meet link gated by RLS (−15 min → end).
-Design: Vietnamese ruled-notebook concept (vở ô li), banana highlighter = free time, violet ink = lessons.
+**Decided:** Supabase (auth, RLS, storage) + static Vite/React on Pages; email+password, tutor issues accounts (no
+self sign-up); in-app notifications only; owed = approved, billable, unpaid, started; grouped by calendar month, due
+last day, overdue after; QR = total owed. Links must be `https://` (DB check). Code is written by the `sonnet-coder`
+subagent, Opus reviews.
 
-**Ruled out:** Docker/local Supabase (uses too much RAM on this PC); Long Vân website builder (templates only).
+**Ruled out / parked:** Docker/local Supabase (RAM); Long Vân website builder; SePay/Casso auto payment check (user:
+not now; if revived, SePay supports BIDV, needs an Edge Function webhook and a unique per-student transfer code since
+`HOCPHI <NAME>` can collide).
 
 **Traps**
-- `npm run test:db` = PGlite with stubbed auth/storage (31 checks); not identical to real Supabase, verify on the real project.
-- Supabase free tier sends ~2 auth emails/hour: keep Confirm email off.
+- `npm run test:db` = PGlite with stubbed auth/storage (35 checks); not identical to real Supabase.
+- Unauthenticated GitHub API = 60 req/h (a polling loop burned it); read the Actions page in the browser pane instead.
+  A deploy takes ~4 min. `gh` CLI is not installed.
+- No UI to undo "paid"; no UI to rename a student (SQL only).
 - Known gaps: tutor cannot cancel an approved lesson in the UI; students can send duplicate pending requests;
   phone users book by tapping (no drag).

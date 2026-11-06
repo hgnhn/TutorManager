@@ -12,7 +12,8 @@ hệ thống tự tính học phí (mặc định 100.000 đ/buổi) kèm mã Vi
 
 1. Vào supabase.com, đăng nhập bằng GitHub, **New project** (region Singapore).
 2. **SQL Editor**: dán toàn bộ file migration ở trên, bấm **Run**.
-3. **Authentication > Sign In / Providers > Email**: tắt **Confirm email** (gói miễn phí chỉ gửi vài email mỗi giờ).
+3. **Authentication > Sign In / Providers > Email**: tắt **Confirm email** (gói miễn phí chỉ gửi vài email mỗi giờ),
+   và tắt **Allow new users to sign up** để người lạ không tự tạo tài khoản được.
 4. **Authentication > URL Configuration**: Site URL = `https://bananalab.id.vn`.
 5. **Project Settings > API**: lấy **Project URL** và **anon / publishable key**.
    Không bao giờ đưa `service_role` key vào code hay GitHub.
@@ -34,7 +35,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 npm run dev
 ```
 
-Đăng ký tài khoản của bạn trên web, rồi trong **SQL Editor** chạy (thay email):
+Tạo tài khoản của bạn ở **Authentication > Users > Add user > Create new user** (bật **Auto Confirm User**), rồi trong **SQL Editor** chạy (thay email):
 
 ```sql
 update public.profiles set role = 'tutor'
@@ -43,6 +44,18 @@ where id = (select id from auth.users where email = 'email-cua-ban@gmail.com');
 
 Đăng nhập lại là thấy mục **Cài đặt**: nhập giá mỗi buổi, mã ngân hàng (BIN hoặc tên viết tắt, ví dụ `970436`/`vcb`),
 số tài khoản, tên chủ tài khoản và link Meet mặc định.
+
+### Cấp tài khoản cho học viên
+
+Web không cho tự đăng ký. Mỗi học viên: **Authentication > Users > Add user > Create new user**, nhập email và mật khẩu,
+bật **Auto Confirm User**, rồi đặt tên trong **SQL Editor** (tên này hiện trong lịch, học phí và nội dung chuyển khoản):
+
+```sql
+update public.profiles set full_name = 'Nguyễn Văn A'
+where id = (select id from auth.users where email = 'email-hoc-vien@gmail.com');
+```
+
+Gửi email và mật khẩu cho học viên để họ đăng nhập.
 
 ## 3. Đưa lên GitHub Pages
 
