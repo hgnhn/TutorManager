@@ -104,7 +104,8 @@ export default function App() {
               <>
                 {profile && !isTutor && <Bell userId={userId} path={path} version={version} />}
                 <span>{name}</span>
-                <button type="button" className="btn btn--secondary" onClick={() => supabase.auth.signOut()}>Đăng xuất</button>
+                {/* local: only this browser; the default 'global' also logs out every other device */}
+                <button type="button" className="btn btn--secondary" onClick={() => supabase.auth.signOut({ scope: 'local' })}>Đăng xuất</button>
               </>
             ) : (
               <a className="btn btn--secondary" href="#/dang-nhap">Đăng nhập</a>
